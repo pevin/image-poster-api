@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Environment:
+      Variables:
+        APP_AWS_REGION: ap-southeast-1
+        APP_ENV: !Ref Stage
+        TABLE_NAME: !Join [ "-", [ "posts", !Ref Stage ] ]
+    Timeout: 10
+
+Parameters:
+  Stage:
+    Type: String
+    Default: test
+
+Resources:
+  # API GATEWAY
+  PostApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      OpenApiVersion: 3.0.3
+      BinaryMediaTypes:
+        - "multipart/form-data"
+      GatewayResponses:
+        BAD_REQUEST_BODY:
+          ResponseTemplates:
+            "application/json": "{\"message\": \"$context.error.validationErrorString\", \"success\": false, \"data\": null}"
+        DEFAULT_4XX:
+          ResponseTemplates:
+            "application/json": "{\"message\": \"Invalid request.\", \"success\": false, \"data\": null}"
+        DEFAULT_5XX:
+          StatusCode: 500
+          ResponseTemplates:
+            "application/json": "{\"message\": \"Oops. Something went wrong. Please try again in a moment.\", \"success\": false, \"data\": null}"
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  # FUNCTIONS
+  CreatePostFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_post
+      CodeUri: dist/functions/create_post
+      Runtime: go1.x
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref PostOriginalBucket
+      Policies:
+        - AWSLambdaExecute
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                - Fn::GetAtt: [PostOriginalBucket, Arn]
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - Fn::GetAtt: [PostDynamoDBTable, Arn]
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PostApi
+            Path: /posts
+            Method: POST
+
+  # DynamoDB
+  PostDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "PK"
+          AttributeType: "S"
+        -
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "PK"
+          KeyType: "HASH"
+        -
+          AttributeName: "SK"
+          KeyType: "RANGE"
+      BillingMode: "PAY_PER_REQUEST"
+      TableName: !Join [ "-", [ "posts", !Ref Stage ] ]
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+
+  # S3
+  PostPublicBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Join [ "-", [ "posts-public", !Ref Stage ] ]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  PostPublicBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket:
+        Ref: 'PostPublicBucket'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: 'PostPublicBucket'
+                  - '/*'
+  PostOriginalBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Join [ "-", [ "posts-original", !Ref Stage ] ]
+      AccessControl: Private
+
+Outputs:
+  URLEndpoint:
+    Description: "API endpoint"
+    Value: !Sub "https://${PostApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"

@@ -55,4 +55,5 @@ The design prioritizes low latency, high throughput, and could cater for users w
 - Implement Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
 - Enable delete protection for the dynamodb table.
 - Cloudfront to further improve latency.
+- Unit tests (didn't had enough time) and e2e automation tests
 - Run `STAGE=prod make deploy` to deploy in production environment.

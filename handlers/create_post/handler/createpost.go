@@ -14,12 +14,12 @@ import (
 	"github.com/pevin/image-poster-api/lib/aws/s3"
 )
 
-type Header struct {
+type requestHeader struct {
 	UserID string `json:"user-id"`
 }
 
 func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
-	var header Header
+	var header requestHeader
 	headerBytes, err := json.Marshal(req.Headers)
 	if err != nil {
 		return
@@ -39,6 +39,8 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 	if err != nil {
 		return
 	}
+
+	// todo: validate file extension
 
 	// todo: validate image size
 

@@ -54,4 +54,5 @@ The design prioritizes low latency, high throughput, and could cater for users w
   - _e.g. image uploaded lambda func encountered an error._
 - Implement Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
 - Enable delete protection for the dynamodb table.
+- Cloudfront to further improve latency.
 - Run `STAGE=prod make deploy` to deploy in production environment.

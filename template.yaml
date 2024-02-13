@@ -63,6 +63,32 @@ Resources:
             RestApiId: !Ref PostApi
             Path: /posts
             Method: POST
+  GetPostsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: get_posts
+      CodeUri: dist/functions/get_posts
+      Runtime: go1.x
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PostDynamoDBTable
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - Fn::GetAtt: [PostDynamoDBTable, Arn]
+                - !Join ["/", [!GetAtt PostDynamoDBTable.Arn, "index/*"]]
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PostApi
+            Path: /posts
+            Method: GET
   ImageUploadedFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -167,6 +193,6 @@ Resources:
       AccessControl: Private
 
 Outputs:
-  URLEndpoint:
+  APIGatewayURLEndpoint:
     Description: "API endpoint"
     Value: !Sub "https://${PostApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"

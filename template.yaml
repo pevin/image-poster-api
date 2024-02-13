@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
 Globals:
@@ -7,7 +7,6 @@ Globals:
       Variables:
         APP_AWS_REGION: ap-southeast-1
         APP_ENV: !Ref Stage
-        TABLE_NAME: !Join [ "-", [ "posts", !Ref Stage ] ]
     Timeout: 10
 
 Parameters:
@@ -27,14 +26,14 @@ Resources:
       GatewayResponses:
         BAD_REQUEST_BODY:
           ResponseTemplates:
-            "application/json": "{\"message\": \"$context.error.validationErrorString\", \"success\": false, \"data\": null}"
+            "application/json": '{"message": "$context.error.validationErrorString", "success": false, "data": null}'
         DEFAULT_4XX:
           ResponseTemplates:
-            "application/json": "{\"message\": \"Invalid request.\", \"success\": false, \"data\": null}"
+            "application/json": '{"message": "Invalid request.", "success": false, "data": null}'
         DEFAULT_5XX:
           StatusCode: 500
           ResponseTemplates:
-            "application/json": "{\"message\": \"Oops. Something went wrong. Please try again in a moment.\", \"success\": false, \"data\": null}"
+            "application/json": '{"message": "Oops. Something went wrong. Please try again in a moment.", "success": false, "data": null}'
       EndpointConfiguration:
         Type: REGIONAL
 
@@ -50,18 +49,13 @@ Resources:
           S3_BUCKET_NAME: !Ref PostOriginalBucket
       Policies:
         - AWSLambdaExecute
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - s3:PutObject
               Resource:
                 - Fn::GetAtt: [PostOriginalBucket, Arn]
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-              Resource:
-                - Fn::GetAtt: [PostDynamoDBTable, Arn]
       Events:
         Api:
           Type: Api
@@ -69,77 +63,107 @@ Resources:
             RestApiId: !Ref PostApi
             Path: /posts
             Method: POST
+  ImageUploadedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: image_uploaded
+      CodeUri: dist/functions/image_uploaded
+      Runtime: go1.x
+      Environment:
+        Variables:
+          S3_PUBLIC_BUCKET_NAME: !Ref PostPublicBucket
+          TABLE_NAME: !Ref PostDynamoDBTable
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                - Fn::GetAtt: [PostPublicBucket, Arn]
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - Fn::GetAtt: [PostDynamoDBTable, Arn]
+      Events:
+        UploadedEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref PostOriginalBucket
+            Events: s3:ObjectCreated:*
+
+  # Permissions
+  AllowS3ToCallLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref ImageUploadedFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt PostOriginalBucket.Arn
 
   # DynamoDB
   PostDynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        -
-          AttributeName: "PK"
+        - AttributeName: "PK"
           AttributeType: "S"
-        -
-          AttributeName: "SK"
+        - AttributeName: "SK"
           AttributeType: "S"
-        -
-          AttributeName: "GSI1PK"
+        - AttributeName: "GSI1PK"
           AttributeType: "S"
-        -
-          AttributeName: "GSI1SK"
+        - AttributeName: "GSI1SK"
           AttributeType: "S"
       KeySchema:
-        -
-          AttributeName: "PK"
+        - AttributeName: "PK"
           KeyType: "HASH"
-        -
-          AttributeName: "SK"
+        - AttributeName: "SK"
           KeyType: "RANGE"
       BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join [ "-", [ "posts", !Ref Stage ] ]
+      TableName: !Join ["-", ["posts", !Ref Stage]]
       GlobalSecondaryIndexes:
-        -
-          IndexName: "GSI1"
+        - IndexName: "GSI1"
           KeySchema:
-            -
-              AttributeName: "GSI1PK"
+            - AttributeName: "GSI1PK"
               KeyType: "HASH"
-            -
-              AttributeName: "GSI1SK"
+            - AttributeName: "GSI1SK"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
 
   # S3
   PostPublicBucket:
-    Type: 'AWS::S3::Bucket'
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Join [ "-", [ "posts-public", !Ref Stage ] ]
+      BucketName: !Join ["-", ["posts-public", !Ref Stage]]
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
         IgnorePublicAcls: false
         RestrictPublicBuckets: false
   PostPublicBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket:
-        Ref: 'PostPublicBucket'
+        Ref: "PostPublicBucket"
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
+            Principal: "*"
+            Action: "s3:GetObject"
             Resource:
               Fn::Join:
-                - ''
-                - - 'arn:aws:s3:::'
-                  - Ref: 'PostPublicBucket'
-                  - '/*'
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: "PostPublicBucket"
+                  - "/*"
   PostOriginalBucket:
-    Type: 'AWS::S3::Bucket'
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Join [ "-", [ "posts-original", !Ref Stage ] ]
+      BucketName: !Join ["-", ["posts-original", !Ref Stage]]
       AccessControl: Private
 
 Outputs:

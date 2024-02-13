@@ -1,6 +1,8 @@
 go 1.21.1
 
 use (
+	./comment
+	./handlers/create_comment
 	./handlers/create_post
 	./handlers/get_posts
 	./handlers/image_uploaded

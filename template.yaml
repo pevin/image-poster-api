@@ -36,6 +36,17 @@ Resources:
             "application/json": '{"message": "Oops. Something went wrong. Please try again in a moment.", "success": false, "data": null}'
       EndpointConfiguration:
         Type: REGIONAL
+      Models:
+        CommentRequestBody:
+          type: object
+          required:
+            - content
+            - post_id
+          properties:
+            content:
+              type: string
+            post_id:
+              type: string
 
   # FUNCTIONS
   CreatePostFunction:
@@ -63,6 +74,34 @@ Resources:
             RestApiId: !Ref PostApi
             Path: /posts
             Method: POST
+  CreateCommentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: create_comment
+      CodeUri: dist/functions/create_comment
+      Runtime: go1.x
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PostDynamoDBTable
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource:
+                - Fn::GetAtt: [PostDynamoDBTable, Arn]
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PostApi
+            Path: /comments
+            Method: POST
+            RequestModel:
+              Model: CommentRequestBody
+              ValidateBody: true
   GetPostsFunction:
     Type: AWS::Serverless::Function
     Properties:

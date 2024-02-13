@@ -3,16 +3,15 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"rest"
 	"rest/request"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/oklog/ulid/v2"
+	"github.com/pevin/image-poster-api/lib/aws/s3"
 )
 
 type Header struct {
@@ -41,15 +40,10 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 		return
 	}
 
+	// todo: validate image size
+
 	// init uploader client
-	awsRegion := os.Getenv("APP_AWS_REGION")
-	conf := &aws.Config{Region: aws.String(awsRegion)}
-	sess, err := session.NewSession(conf)
-	if err != nil {
-		fmt.Println("Error creating aws session: ", err)
-		panic(err)
-	}
-	uploader := s3manager.NewUploader(sess)
+	uploader := s3.GetS3Uploader()
 
 	s3Bucket := os.Getenv("S3_BUCKET_NAME")
 	id := ulid.Make().String()

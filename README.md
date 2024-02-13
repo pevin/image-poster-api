@@ -47,8 +47,11 @@ The design prioritizes low latency, high throughput, and could cater for users w
 
 ## Go Live TODOs
 
+- Finish up missing user stories.
 - Distributed tracing and logging.
 - Setup alerts for errors and anomalies.
-- Consider implementing Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
+- Implement graceful handling of failures and retries.
+  - _e.g. image uploaded lambda func encountered an error._
+- Implement Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
 - Enable delete protection for the dynamodb table.
 - Run `STAGE=prod make deploy` to deploy in production environment.

@@ -40,5 +40,15 @@ A prototype for an API that allows clients to post an images with captions and c
 
 The design prioritizes low latency, high throughput, and could cater for users with unstable internet connections. However, to achieve these constraints, it introduces some tradeoffs which are listed below:
 
-- The text payload (e.g. caption, user) is only limited to 2 KB (around ~2k characters). The limitation is on S3 metadata.
-- Increasing the number of comments that comes with the GET /posts response will not be trivial because the data is being duplicated in the Post entity to reduce latency. _e.g. bumping from latest 2 comments to latest 5 comments_
+- The text payload (e.g. caption, user) in `POST /posts` is only limited to 2 KB (around ~2k characters). The limitation is on S3 metadata.
+- Adjusting the number of comments that comes with the `GET /posts` response will not be trivial because the data is being duplicated in the Post entity to reduce latency. _e.g. bumping from latest 2 comments to latest 5 comments_
+- Eventual consistency:
+  - Newly created post will not show immediately in `GET /posts` endpoint. There's a bit of delay since the DynamoDB item is created in the background. Same with comments.
+
+## TODOs Before Production
+
+- Distributed tracing and logging.
+- Setup alerts for errors and anomalies.
+- Consider implementing Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
+- Run `STAGE=prod make deploy`.
+- Enable delete protection for the dynamodb table.

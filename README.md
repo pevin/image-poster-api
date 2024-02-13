@@ -45,10 +45,10 @@ The design prioritizes low latency, high throughput, and could cater for users w
 - Eventual consistency:
   - Newly created post will not show immediately in `GET /posts` endpoint. There's a bit of delay since the DynamoDB item is created in the background. Same with comments.
 
-## TODOs Before Production
+## Go Live TODOs
 
 - Distributed tracing and logging.
 - Setup alerts for errors and anomalies.
 - Consider implementing Authorizer. At the time of writing, user is defined via the `user-id` header which is not very secure.
-- Run `STAGE=prod make deploy`.
 - Enable delete protection for the dynamodb table.
+- Run `STAGE=prod make deploy` to deploy in production environment.

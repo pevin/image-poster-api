@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"rest"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -12,9 +11,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	dynamodbInternal "github.com/pevin/image-poster-api/lib/aws/dynamodb"
 	"github.com/pevin/image-poster-api/post"
 )
+
+type dynamodbClient interface {
+	Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error)
+}
+type GetPostsAPIGatewayHandler struct {
+	dbClient  dynamodbClient
+	tableName string
+}
+
+func New(client dynamodbClient, tableName string) *GetPostsAPIGatewayHandler {
+	return &GetPostsAPIGatewayHandler{dbClient: client, tableName: tableName}
+}
 
 type queryParam struct {
 	Cursor string `json:"cursor"`
@@ -26,7 +36,7 @@ type responseBody struct {
 	Next string      `json:"next"`
 }
 
-func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
+func (h *GetPostsAPIGatewayHandler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
 	qpBytes, err := json.Marshal(req.QueryStringParameters)
 	if err != nil {
 		fmt.Printf("Got error marshaling query parameters: %v", err)
@@ -55,19 +65,17 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 		return
 	}
 
-	tableName := os.Getenv("TABLE_NAME")
-	dynamodbClient := dynamodbInternal.GetClient()
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
-		TableName:                 aws.String(tableName),
+		TableName:                 aws.String(h.tableName),
 		ScanIndexForward:          aws.Bool(false),
 		IndexName:                 aws.String("GSI1"),
 		Limit:                     aws.Int64(params.Limit),
 	}
 
-	result, err := dynamodbClient.Query(input)
+	result, err := h.dbClient.Query(input)
 
 	list := []post.Post{}
 

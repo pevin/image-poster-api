@@ -57,3 +57,13 @@ The design prioritizes low latency, high throughput, and could cater for users w
 - Cloudfront to further improve latency.
 - Unit tests (didn't had enough time) and e2e automation tests
 - Run `STAGE=prod make deploy` to deploy in production environment.
+
+## How To:
+
+```
+# run unit tests
+make test
+
+# deploy in AWS
+make deploy
+```

@@ -15,3 +15,7 @@ deploy-only:
 
 clean:
 	rm -rf dist
+
+TEST_DIRS="./handlers/create_post/..."
+test:
+	go test $(TEST_DIRS)

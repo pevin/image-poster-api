@@ -5,13 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
-	dynamodbInternal "github.com/pevin/image-poster-api/lib/aws/dynamodb"
-	s3Internal "github.com/pevin/image-poster-api/lib/aws/s3"
 	"github.com/pevin/image-poster-api/post"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -20,23 +17,44 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-var (
-	s3Client       *s3.S3
-	s3Uploader     *s3manager.Uploader
+type s3Client interface {
+	GetObject(input *s3.GetObjectInput) (*s3.GetObjectOutput, error)
+}
+
+type uploader interface {
+	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+}
+
+type dynamodbClient interface {
+	PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error)
+}
+
+type ImageUploadedS3Handler struct {
+	s3Client       s3Client
+	s3Uploader     uploader
 	s3PublicBucket string
-	dynamodbClient *dynamodb.DynamoDB
+	dynamodbClient dynamodbClient
 	tableName      string
-)
+}
 
-func Handle(ctx context.Context, event events.S3Event) (err error) {
-	s3Client = s3Internal.GetS3Client()
-	s3Uploader = s3Internal.GetS3Uploader()
-	s3PublicBucket = os.Getenv("S3_PUBLIC_BUCKET_NAME")
-	dynamodbClient = dynamodbInternal.GetClient()
-	tableName = os.Getenv("TABLE_NAME")
+func New(
+	s3Client *s3.S3,
+	s3Uploader *s3manager.Uploader,
+	s3Bucket string,
+	ddbClient *dynamodb.DynamoDB,
+	tableName string) *ImageUploadedS3Handler {
+	return &ImageUploadedS3Handler{
+		s3Client:       s3Client,
+		s3Uploader:     s3Uploader,
+		s3PublicBucket: s3Bucket,
+		dynamodbClient: ddbClient,
+		tableName:      tableName,
+	}
+}
 
+func (h *ImageUploadedS3Handler) Handle(ctx context.Context, event events.S3Event) (err error) {
 	for _, r := range event.Records {
-		rErr := handleRecord(r)
+		rErr := h.handleRecord(r)
 		if rErr != nil {
 			err = rErr
 		}
@@ -49,11 +67,11 @@ type Metadata struct {
 	UserID  string `json:"x-amz-meta-user"`
 }
 
-func handleRecord(r events.S3EventRecord) (err error) {
+func (h *ImageUploadedS3Handler) handleRecord(r events.S3EventRecord) (err error) {
 	k := r.S3.Object.Key
 	id := strings.Split(k, ".")[0]
 
-	s3Obj, err := s3Client.GetObject(&s3.GetObjectInput{
+	s3Obj, err := h.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(r.S3.Bucket.Name),
 		Key:    aws.String(k),
 	})
@@ -95,8 +113,8 @@ func handleRecord(r events.S3EventRecord) (err error) {
 	}
 
 	filename := id + "." + imaging.JPEG.String()
-	uploaded, err := s3Uploader.Upload(&s3manager.UploadInput{
-		Bucket:             aws.String(s3PublicBucket),
+	uploaded, err := h.s3Uploader.Upload(&s3manager.UploadInput{
+		Bucket:             aws.String(h.s3PublicBucket),
 		Key:                aws.String(filename),
 		Body:               buff,
 		ContentDisposition: aws.String("inline"),
@@ -122,10 +140,10 @@ func handleRecord(r events.S3EventRecord) (err error) {
 
 	input := &dynamodb.PutItemInput{
 		Item:      av,
-		TableName: aws.String(tableName),
+		TableName: aws.String(h.tableName),
 	}
 
-	_, err = dynamodbClient.PutItem(input)
+	_, err = h.dynamodbClient.PutItem(input)
 	if err != nil {
 		fmt.Printf("Got error calling PutItem: %s", err)
 		return

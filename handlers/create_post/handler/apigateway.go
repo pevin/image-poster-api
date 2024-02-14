@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"rest"
 	"rest/request"
 
@@ -11,14 +10,31 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/oklog/ulid/v2"
-	"github.com/pevin/image-poster-api/lib/aws/s3"
 )
 
 type requestHeader struct {
 	UserID string `json:"user-id"`
 }
 
-func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
+type uploader interface {
+	Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+}
+
+type multipartRequest interface {
+	GetMultipartValues(req events.APIGatewayProxyRequest, fileFieldName string) (mv request.MultipartValues, err error)
+}
+
+type CreatePostAPIGatewayHandler struct {
+	s3Uploader       uploader
+	bucket           string
+	multipartRequest multipartRequest
+}
+
+func New(su uploader, bucket string, mr multipartRequest) *CreatePostAPIGatewayHandler {
+	return &CreatePostAPIGatewayHandler{s3Uploader: su, bucket: bucket, multipartRequest: mr}
+}
+
+func (h *CreatePostAPIGatewayHandler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
 	var header requestHeader
 	headerBytes, err := json.Marshal(req.Headers)
 	if err != nil {
@@ -35,7 +51,7 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 		return
 	}
 
-	mv, err := request.GetMultipartValues(req, "image")
+	mv, err := h.multipartRequest.GetMultipartValues(req, "image")
 	if err != nil {
 		return
 	}
@@ -45,13 +61,11 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 	// todo: validate image size
 
 	// init uploader client
-	uploader := s3.GetS3Uploader()
 
-	s3Bucket := os.Getenv("S3_BUCKET_NAME")
 	id := ulid.Make().String()
 	filename := id + "." + mv.FileExtension
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:             aws.String(s3Bucket),
+	_, err = h.s3Uploader.Upload(&s3manager.UploadInput{
+		Bucket:             aws.String(h.bucket),
 		Key:                aws.String(filename),
 		Body:               mv.Body,
 		ContentDisposition: aws.String("inline"),
@@ -61,6 +75,7 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 			"x-amz-meta-user":    aws.String(header.UserID),
 		},
 	})
+
 	if err != nil {
 		return
 	}

@@ -10,6 +10,12 @@ import (
 	"github.com/grokify/go-awslambda"
 )
 
+type MultipartRequest struct{}
+
+func NewMultipartRequest() *MultipartRequest {
+	return &MultipartRequest{}
+}
+
 type MultipartValues struct {
 	Body          io.Reader
 	Filename      string
@@ -18,7 +24,7 @@ type MultipartValues struct {
 	Caption       string
 }
 
-func GetMultipartValues(req events.APIGatewayProxyRequest, fileFieldName string) (mv MultipartValues, err error) {
+func (m *MultipartRequest) GetMultipartValues(req events.APIGatewayProxyRequest, fileFieldName string) (mv MultipartValues, err error) {
 	r, err := awslambda.NewReaderMultipart(req)
 	if err != nil {
 		log.Printf("Error in creating reader multipart: %s", err)

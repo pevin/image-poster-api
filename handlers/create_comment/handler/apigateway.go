@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"rest"
 	"time"
 
@@ -13,8 +12,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/oklog/ulid/v2"
 	"github.com/pevin/image-poster-api/comment"
-	dynamodbInternal "github.com/pevin/image-poster-api/lib/aws/dynamodb"
 )
+
+type dynamodbClient interface {
+	PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error)
+}
+
+type CreateCommentAPIGatewayHandler struct {
+	dbClient  dynamodbClient
+	tableName string
+}
+
+func New(dc dynamodbClient, tableName string) *CreateCommentAPIGatewayHandler {
+	return &CreateCommentAPIGatewayHandler{dbClient: dc, tableName: tableName}
+}
 
 type requestHeader struct {
 	UserID string `json:"user-id"`
@@ -25,7 +36,7 @@ type requestBody struct {
 	PostID  string `json:"post_id"`
 }
 
-func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
+func (h CreateCommentAPIGatewayHandler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
 	var header requestHeader
 	headerBytes, err := json.Marshal(req.Headers)
 	if err != nil {
@@ -64,15 +75,12 @@ func Handle(ctx context.Context, req events.APIGatewayProxyRequest) (res events.
 		return
 	}
 
-	dynamodbClient := dynamodbInternal.GetClient()
-	tableName := os.Getenv("TABLE_NAME")
-
 	input := &dynamodb.PutItemInput{
 		Item:      av,
-		TableName: aws.String(tableName),
+		TableName: aws.String(h.tableName),
 	}
 
-	_, err = dynamodbClient.PutItem(input)
+	_, err = h.dbClient.PutItem(input)
 	if err != nil {
 		fmt.Printf("Got error calling PutItem: %s", err)
 		return

@@ -93,7 +93,7 @@ func (h *CreatePostAPIGatewayHandler) Handle(ctx context.Context, req events.API
 }
 
 func validateExtension(ext string) bool {
-	validExt := map[string]struct{}{"jpg": struct{}{}, "jpeg": struct{}{}, "png": struct{}{}, "bmp": struct{}{}}
+	validExt := map[string]struct{}{"jpg": {}, "jpeg": {}, "png": {}, "bmp": {}}
 
 	_, ok := validExt[strings.ToLower(ext)]
 

@@ -1,0 +1,159 @@
+_type: export
+__export_format: 4
+__export_date: 2024-02-15T09:36:15.632Z
+__export_source: insomnia.desktop.app:v8.6.1
+resources:
+  - _id: req_adc4882796b140c1b2089ba794ceef0c
+    parentId: wrk_91faf26afd82425b9d20d4166ba36a03
+    modified: 1707979064789
+    created: 1707737867219
+    url: "{{ _.base }}/posts"
+    name: Create Post
+    description: ""
+    method: POST
+    body:
+      mimeType: multipart/form-data
+      params:
+        - id: pair_008268758dfa4a1591deb8e6a9dd1156
+          name: image
+          value: ""
+          description: ""
+          type: file
+          fileName: ~/Downloads/test-file.jpg
+        - id: pair_3d72705a97ce4a2b87b2c4d4a56db191
+          name: caption
+          value: error
+          description: ""
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: multipart/form-data
+        id: pair_50100b25c8684a34bdca7a06ccf49c56
+      - name: User-Agent
+        value: insomnia/8.6.1
+        id: pair_cdb911de7191449ca9d6306c4fd5f022
+      - id: pair_e6e5dbac1c5c456180a68c34ed9b7c2e
+        name: user-id
+        value: test-user-4
+        description: ""
+    authentication: {}
+    metaSortKey: -1707737867219
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: wrk_91faf26afd82425b9d20d4166ba36a03
+    parentId: null
+    modified: 1707737822823
+    created: 1707737822823
+    name: Image Poster
+    description: ""
+    scope: collection
+    _type: workspace
+  - _id: req_73f8fc42aa274f54a9fb150fd42af821
+    parentId: wrk_91faf26afd82425b9d20d4166ba36a03
+    modified: 1707977314414
+    created: 1707832804478
+    url: "{{ _.base }}/comments"
+    name: Create Comment
+    description: ""
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"content": "final final boss",
+        	"post_id": "01HPNNZVYQ0PAABXG15EFN5YAT"
+        }
+    parameters: []
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/8.6.1
+        id: pair_cdb911de7191449ca9d6306c4fd5f022
+      - id: pair_e6e5dbac1c5c456180a68c34ed9b7c2e
+        name: user-id
+        value: test-user-4
+        description: ""
+    authentication: {}
+    metaSortKey: -1705351806401.25
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_fbb5e2e1230c4567be61be1f9224797c
+    parentId: wrk_91faf26afd82425b9d20d4166ba36a03
+    modified: 1707978925451
+    created: 1707797213765
+    url: "{{ _.base }}/posts"
+    name: Get Posts
+    description: ""
+    method: GET
+    body:
+      mimeType: multipart/form-data
+      params: []
+    parameters:
+      - id: pair_7273fb48c6ab4842b51ae9c6b9ce723d
+        name: limit
+        value: "2"
+        description: ""
+        disabled: true
+      - id: pair_4523c6f2489f42c7aa29e66498e47df3
+        name: cursor
+        value: 0000000000#POST#01HPG5NXK6BW0JSSZ7DTR01Z0C
+        description: ""
+        disabled: true
+    headers:
+      - name: Content-Type
+        value: multipart/form-data
+        id: pair_50100b25c8684a34bdca7a06ccf49c56
+      - name: User-Agent
+        value: insomnia/8.6.1
+        id: pair_cdb911de7191449ca9d6306c4fd5f022
+      - id: pair_e6e5dbac1c5c456180a68c34ed9b7c2e
+        name: user-id
+        value: test-user-4
+        description: ""
+    authentication: {}
+    metaSortKey: -1702965745583.5
+    isPrivate: false
+    pathParameters: []
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: env_80817ede46203db6010adbb0ed628c229c278626
+    parentId: wrk_91faf26afd82425b9d20d4166ba36a03
+    modified: 1707737927795
+    created: 1707737822824
+    name: Base Environment
+    data:
+      base: https://{{replace-with-your-url}}
+    dataPropertyOrder:
+      "&":
+        - base
+    color: null
+    isPrivate: false
+    metaSortKey: 1707737822824
+    _type: environment
+  - _id: jar_80817ede46203db6010adbb0ed628c229c278626
+    parentId: wrk_91faf26afd82425b9d20d4166ba36a03
+    modified: 1707737822825
+    created: 1707737822825
+    name: Default Jar
+    cookies: []
+    _type: cookie_jar

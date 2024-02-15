@@ -67,3 +67,5 @@ make test
 # deploy in AWS
 make deploy
 ```
+
+See `Insomnia-collections.yaml` for the endpoint details.

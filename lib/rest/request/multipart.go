@@ -22,6 +22,7 @@ type MultipartValues struct {
 	FileExtension string
 	ContentType   string
 	Caption       string
+	Size          int64
 }
 
 func (m *MultipartRequest) GetMultipartValues(req events.APIGatewayProxyRequest, fileFieldName string) (mv MultipartValues, err error) {
@@ -44,11 +45,13 @@ func (m *MultipartRequest) GetMultipartValues(req events.APIGatewayProxyRequest,
 			if fErr != nil {
 				return mv, fErr
 			}
-			mv.Body = bytes.NewReader(pC)
+			reader := bytes.NewReader(pC)
+			mv.Body = reader
 			mv.Filename = p.FileName()
 			split := strings.Split(mv.Filename, ".")
 			mv.FileExtension = split[len(split)-1]
 			mv.ContentType = p.Header.Get("Content-Type")
+			mv.Size = reader.Size()
 		}
 		if p.FormName() == "caption" {
 			pC, fErr := io.ReadAll(p)

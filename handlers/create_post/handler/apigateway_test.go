@@ -39,8 +39,13 @@ func TestHandle(t *testing.T) {
 
 		mockUploader := new(mockedS3Uploader)
 		mockUploader.On("Upload", mock.Anything).Return(&s3manager.UploadOutput{}, nil)
+
+		mv := request.MultipartValues{
+			FileExtension: "jpg",
+			Size:          1000,
+		}
 		mockMultipart := new(mockedMultipartRequest)
-		mockMultipart.On("GetMultipartValues", req, "image").Return(request.MultipartValues{}, nil)
+		mockMultipart.On("GetMultipartValues", req, "image").Return(mv, nil)
 
 		handler := handler.New(mockUploader, "test-bucket", mockMultipart)
 
@@ -62,4 +67,49 @@ func TestHandle(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode)
 	})
+	t.Run("Returns bad request if file format is not supported", func(t *testing.T) {
+		req := events.APIGatewayProxyRequest{
+			Headers: map[string]string{"user-id": "test-user-id"},
+		}
+
+		mockUploader := new(mockedS3Uploader)
+		mockUploader.On("Upload", mock.Anything).Return(&s3manager.UploadOutput{}, nil)
+
+		mv := request.MultipartValues{
+			FileExtension: "pdf",
+			Size:          1000,
+		}
+		mockMultipart := new(mockedMultipartRequest)
+		mockMultipart.On("GetMultipartValues", req, "image").Return(mv, nil)
+
+		handler := handler.New(mockUploader, "test-bucket", mockMultipart)
+
+		res, err := handler.Handle(context.TODO(), req)
+		require.NoError(t, err)
+		assert.Equal(t, 400, res.StatusCode)
+		assert.Equal(t, "{\"data\":{},\"message\":\"Invalid file format.\"}", res.Body)
+	})
+	t.Run("Returns bad request if file size is above max", func(t *testing.T) {
+		req := events.APIGatewayProxyRequest{
+			Headers: map[string]string{"user-id": "test-user-id"},
+		}
+
+		mockUploader := new(mockedS3Uploader)
+		mockUploader.On("Upload", mock.Anything).Return(&s3manager.UploadOutput{}, nil)
+
+		mv := request.MultipartValues{
+			FileExtension: "jpg",
+			Size:          100000001,
+		}
+		mockMultipart := new(mockedMultipartRequest)
+		mockMultipart.On("GetMultipartValues", req, "image").Return(mv, nil)
+
+		handler := handler.New(mockUploader, "test-bucket", mockMultipart)
+
+		res, err := handler.Handle(context.TODO(), req)
+		require.NoError(t, err)
+		assert.Equal(t, 400, res.StatusCode)
+		assert.Equal(t, "{\"data\":{},\"message\":\"File size is above 100 MB.\"}", res.Body)
+	})
+
 }

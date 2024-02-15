@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"rest"
 	"rest/request"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,10 +58,17 @@ func (h *CreatePostAPIGatewayHandler) Handle(ctx context.Context, req events.API
 	}
 
 	// todo: validate file extension
+	if !validateExtension(mv.FileExtension) {
+		res = rest.BadRequestResponse("Invalid file format.")
+		return
+	}
 
-	// todo: validate image size
+	maxFileSize := 100000000 // 100 mb
 
-	// init uploader client
+	if mv.Size > int64(maxFileSize) {
+		res = rest.BadRequestResponse("File size is above 100 MB.")
+		return
+	}
 
 	id := ulid.Make().String()
 	filename := id + "." + mv.FileExtension
@@ -82,4 +90,12 @@ func (h *CreatePostAPIGatewayHandler) Handle(ctx context.Context, req events.API
 
 	res = rest.EmptyOkResponse("Request successful.")
 	return
+}
+
+func validateExtension(ext string) bool {
+	validExt := map[string]struct{}{"jpg": struct{}{}, "jpeg": struct{}{}, "png": struct{}{}, "bmp": struct{}{}}
+
+	_, ok := validExt[strings.ToLower(ext)]
+
+	return ok
 }

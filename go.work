@@ -4,6 +4,7 @@ use (
 	./comment
 	./handlers/create_comment
 	./handlers/create_post
+	./handlers/cdc
 	./handlers/get_posts
 	./handlers/image_uploaded
 	./lib/aws

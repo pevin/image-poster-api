@@ -1,6 +1,8 @@
 package comment
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -48,7 +50,28 @@ func (c *Comment) ToKey() map[string]*dynamodb.AttributeValue {
 	}
 	return key
 }
+
+func FromKey(pk string, sk string) Comment {
+	// parse pk
+	pkSplit := strings.Split(pk, "#")
+	skSplit := strings.Split(sk, "#")
+	return Comment{
+		PK:     pk,
+		SK:     sk,
+		PostID: pkSplit[1],
+		ID:     skSplit[1],
+	}
+}
+
 func (c *Comment) generateKey() {
-	c.PK = "POST#" + c.PostID
-	c.SK = "COMMENT#" + c.ID
+	c.PK = fmt.Sprintf("%s#%s", GetPKPrefix(), c.PostID)
+	c.SK = fmt.Sprintf("%s#%s", GetSKPrefix(), c.ID)
+}
+
+func GetPKPrefix() string {
+	return "POST"
+}
+
+func GetSKPrefix() string {
+	return "COMMENT"
 }

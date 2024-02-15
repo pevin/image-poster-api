@@ -10,20 +10,20 @@ import (
 )
 
 type Post struct {
-	PK             string    `dynamodbav:"PK" json:"-"`
-	SK             string    `dynamodbav:"SK" json:"-"`
-	GSI1PK         string    `dynamodbav:"GSI1PK" json:"-"`
-	GSI1SK         string    `dynamodbav:"GSI1SK" json:"-"`
-	ID             string    `dynamodbav:"id" json:"id"`
-	Caption        string    `dynamodbav:"caption" json:"caption"`
-	Image          string    `dynamodbav:"image" json:"image"`
-	CreatedAt      time.Time `dynamodbav:"created,omitempty" json:"created_at"`
-	Creator        string    `dynamodbav:"creator" json:"creator"`
-	LatestComments []comment `dynamodbav:"latest_comments" json:"latest_comments"`
-	TotalComments  int       `dynamodbav:"total_comments" json:"total_comments"`
+	PK             string        `dynamodbav:"PK" json:"-"`
+	SK             string        `dynamodbav:"SK" json:"-"`
+	GSI1PK         string        `dynamodbav:"GSI1PK" json:"-"`
+	GSI1SK         string        `dynamodbav:"GSI1SK" json:"-"`
+	ID             string        `dynamodbav:"id" json:"id"`
+	Caption        string        `dynamodbav:"caption" json:"caption"`
+	Image          string        `dynamodbav:"image" json:"image"`
+	CreatedAt      time.Time     `dynamodbav:"created,omitempty" json:"created_at"`
+	Creator        string        `dynamodbav:"creator" json:"creator"`
+	LatestComments []PostComment `dynamodbav:"latest_comments" json:"latest_comments"`
+	TotalComments  int           `dynamodbav:"total_comments" json:"total_comments"`
 }
 
-type comment struct {
+type PostComment struct {
 	ID        string    `dynamodbav:"id" json:"id"`
 	Content   string    `dynamodbav:"content" json:"content"`
 	CreatedAt time.Time `dynamodbav:"created,omitempty" json:"created_at"`
@@ -59,9 +59,23 @@ func (p *Post) ToKey() map[string]*dynamodb.AttributeValue {
 	}
 	return key
 }
+
+func (p *Post) GetGSI1SK() string {
+	p.generateGSI1Key()
+	return p.GSI1SK
+}
+
 func (p *Post) generateKey() {
-	p.PK = "USER#" + p.Creator
-	p.SK = "POST#" + p.ID
+	p.PK = fmt.Sprintf("%s#%s", GetPKPrefix(), p.ID)
+	p.SK = fmt.Sprintf("%s#%s", GetSKPrefix(), p.ID)
+}
+
+func GetPKPrefix() string {
+	return "POST"
+}
+
+func GetSKPrefix() string {
+	return "POST"
 }
 
 func (p *Post) generateGSI1Key() {

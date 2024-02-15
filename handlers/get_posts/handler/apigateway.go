@@ -32,7 +32,7 @@ type queryParam struct {
 }
 
 type responseBody struct {
-	Data []post.Post `json:"data"`
+	Data []post.Post `json:"posts"`
 	Next string      `json:"next"`
 }
 

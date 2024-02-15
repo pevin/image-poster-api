@@ -158,6 +158,33 @@ Resources:
           Properties:
             Bucket: !Ref PostOriginalBucket
             Events: s3:ObjectCreated:*
+  CdcFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: cdc
+      CodeUri: dist/functions/cdc
+      Runtime: go1.x
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PostDynamoDBTable
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource:
+                - Fn::GetAtt: [PostDynamoDBTable, Arn]
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt PostDynamoDBTable.StreamArn
+            BatchSize: 10
+            StartingPosition: TRIM_HORIZON
 
   # Permissions
   AllowS3ToCallLambdaPermission:
@@ -197,6 +224,8 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
 
   # S3
   PostPublicBucket:
